@@ -1,5 +1,6 @@
 {
-  "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "installCommand": "npm ci --ignore-scripts"
+  "framework": null,
+  "buildCommand": "npm run build:vercel",
+  "outputDirectory": ".output",
+  "installCommand": "npm install --ignore-scripts"
 }
