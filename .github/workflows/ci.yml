@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    name: TypeScript type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: tsc --noEmit
+        run: npx tsc --noEmit
+
+  schema:
+    name: SQL schema and migration integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Migration and schema integrity
+        run: node scripts/check-schema.mjs
+
+  unit:
+    name: Unit suites (pure libraries)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: node:test - workflow, evidence and audio suites
+        run: |
+          node --experimental-strip-types --test \
+            tests/workflow-validation.test.mjs \
+            tests/evidence-recency.test.mjs \
+            tests/voice-recording.test.mjs
+
+  build:
+    name: Worker build health
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Production build
+        run: npm run build
+      - name: Assert build output exists
+        run: test -f dist/server/index.js && echo "dist/server/index.js present"
