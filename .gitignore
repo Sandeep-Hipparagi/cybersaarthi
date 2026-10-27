@@ -42,3 +42,24 @@ next-env.d.ts
 /.sites-runtime/
 /outputs/
 /work/
+
+# local database files, dumps and exports (never commit citizen data)
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.dump
+*.sql.gz
+*.bak
+/data/
+/backups/
+/exports/
+
+# worker, dev-server and tooling logs
+*.log
+logs/
+wrangler.log
+.npm/_logs/
+
