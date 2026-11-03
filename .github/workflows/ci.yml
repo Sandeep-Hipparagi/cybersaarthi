@@ -15,6 +15,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
   typecheck:
     name: TypeScript type check
     runs-on: ubuntu-latest
@@ -70,3 +82,7 @@ jobs:
         run: npm run build
       - name: Assert build output exists
         run: test -f dist/server/index.js && echo "dist/server/index.js present"
+      - name: Full synthetic API and D1 workflow suite
+        run: node --test --test-concurrency=1 tests/api-workflows.test.mjs
+      - name: Rendered application checks
+        run: node --test tests/rendered-html.test.mjs

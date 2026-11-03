@@ -1,12 +1,12 @@
 import type { CandidateFact, CyberSaarthiResponse } from "./cybersaarthi-contract";
 import { proposeNcrpTopLevelRoute } from "./ncrp-routing";
+import { extractFictionalInstitution } from "./financial-validation";
 
 const amountPattern = /(?:₹|rs\.?|inr)\s*([0-9][0-9,]*(?:\.\d{1,2})?)/i;
 const phonePattern = /(?:^|[^\d])((?:\+91[-\s]?)?[6-9]\d{9})(?!\d)/;
 const urlPattern = /https?:\/\/[^\s]+|www\.[^\s]+/i;
 const transactionReferencePattern = /\b(?:synthetic\s+)?(?:UTR|transaction(?:\s+(?:ID|reference))?)\s*(?:number|no\.?|is|:|-)?\s*([A-Z0-9][A-Z0-9-]{7,23})\b/i;
 const dateTimePattern = /\b(\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}(?:\s+(?:at\s+)?\d{1,2}:\d{2}\s*(?:a\.?m\.?|p\.?m\.?))?)/i;
-const bankPattern = /\b((?:State Bank of India)|(?:[A-Z][A-Za-z0-9&.-]*(?:\s+[A-Z][A-Za-z0-9&.-]*){0,3}\s+Bank))\b/;
 const upiPattern = /\b[A-Za-z0-9._-]{2,256}@[A-Za-z][A-Za-z0-9.-]{1,63}\b/;
 const ifscPattern = /\b[A-Z]{4}0[A-Z0-9]{6}\b/i;
 
@@ -51,7 +51,7 @@ export function buildDemoResponse(
   const url = story.match(urlPattern)?.[0] ?? null;
   const transactionReference = story.match(transactionReferencePattern)?.[1] ?? null;
   const incidentDateTime = story.match(dateTimePattern)?.[1]?.replace(/[.,;:]$/, "") ?? null;
-  const bank = story.match(bankPattern)?.[1] ?? null;
+  const bank = extractFictionalInstitution(story);
   const upiId = story.match(upiPattern)?.[0] ?? null;
   const ifsc = story.match(ifscPattern)?.[0]?.toUpperCase() ?? null;
   const hasFinancialSignal =

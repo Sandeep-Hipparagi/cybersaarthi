@@ -512,7 +512,7 @@ test("all independent prototype API workflows", async (t) => {
 
   let prepared;
   await t.test("strict structured preparation and provider boundary", async () => {
-    const story = "I received a payment link and a synthetic debit of ₹12,000 from HDFC Bank on 22 August 2026 at 10:42 AM. The synthetic UTR is 628415739201.";
+    const story = "I received a payment link and a synthetic debit of ₹12,000 from NavaJyoti Bank (fictional) on 22 August 2026 at 10:42 AM. The synthetic UTR is 628415739201.";
     const demo = await responseJson(await api("/api/prepare", {
       cookie: citizenCookie,
       json: { story, language: "English", mode: "DEMO" },
@@ -527,7 +527,7 @@ test("all independent prototype API workflows", async (t) => {
     const preparedFacts = new Map(prepared.candidateFacts.map((fact) => [fact.fieldId, fact.value]));
     assert.equal(preparedFacts.get("financial.transactionReference"), "628415739201");
     assert.equal(preparedFacts.get("incident.dateTime"), "22 August 2026 at 10:42 AM");
-    assert.equal(preparedFacts.get("financial.institution"), "HDFC Bank");
+    assert.equal(preparedFacts.get("financial.institution"), "NavaJyoti Bank (fictional)");
     assert.equal(preparedFacts.has("suspect.phone"), false, "a UTR must not be treated as a phone number");
     assert.equal(prepared.unknownFields.some((item) => item.fieldId === "financial.transactionReference"), false);
     assert.equal(prepared.unknownFields.some((item) => item.fieldId === "incident.dateTime"), false);
@@ -632,7 +632,7 @@ test("all independent prototype API workflows", async (t) => {
                 incidentDateTime: "2026-08-22T10:42:00+05:30",
                 totalAmount: 12000,
                 utrNumber: "628415739201",
-                bankName: "HDFC Bank",
+                bankName: "NavaJyoti Bank (fictional)",
                 victimAccountNumber: null,
                 suspectVpa: "taskdesk42@okaxis",
                 suspectPhone: null,
@@ -676,7 +676,7 @@ test("all independent prototype API workflows", async (t) => {
     assert.match(seededInitial.body.cases[0].demoReference, /^\d{14}$/);
     assert.match(seededInitial.body.cases[0].id, /^CYS-DEMO-\d{14}$/);
     const seededFacts = new Map(seededInitial.body.cases[0].facts.map((fact) => [fact.fieldId, fact.value]));
-    assert.equal(seededFacts.get("financial.institution"), "State Bank of India");
+    assert.equal(seededFacts.get("financial.institution"), "NavaJyoti Bank (fictional)");
     assert.match(String(seededFacts.get("transaction.reference")), /^\d{12}$/);
 
     const legacyId = "CYS-DEMO-2026-LEGACY";
@@ -791,7 +791,7 @@ test("all independent prototype API workflows", async (t) => {
     ));
     assert.equal(transaction.response.status, 200);
     assert.equal(transaction.body.transaction.utrNumber, "628415739201");
-    assert.equal(transaction.body.transaction.originInstitution, "HDFC Bank");
+    assert.equal(transaction.body.transaction.originInstitution, "NavaJyoti Bank (fictional)");
     assert.equal(transaction.body.transaction.destinationWallet, "taskdesk42@okaxis");
     assert.equal(transaction.body.transaction.externalBankVerification, "DISCONNECTED");
     assert.equal(transaction.body.transaction.destinationClassification, "UNVERIFIED_RECIPIENT");

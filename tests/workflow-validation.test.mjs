@@ -10,6 +10,8 @@ import {
 } from "../lib/workflow-validation.ts";
 import {
   EMPTY_FINANCIAL_DRAFT,
+  extractFictionalInstitution,
+  INDIAN_BANK_CATALOG,
   mergePreparedFinancialDraft,
 } from "../lib/financial-validation.ts";
 import {
@@ -46,7 +48,7 @@ test("prepared facts fill empty financial fields without overwriting citizen edi
       incidentDateTime: "2026-08-24T14:32:00+05:30",
       totalAmount: 12000,
       utrNumber: "432198765012",
-      bankName: "HDFC Bank",
+      bankName: "NavaJyoti Bank (fictional)",
       victimAccountNumber: null,
       suspectVpa: "taskdesk42@okaxis",
       suspectPhone: "+91 9000011223",
@@ -82,6 +84,12 @@ test("prepared facts fill empty financial fields without overwriting citizen edi
     { ...humanReadableDate, incidentDateTime: "31 February 2026 at 2:32 PM", totalAmount: null },
   );
   assert.equal(impossibleDate.incidentDateTime, "");
+});
+
+test("synthetic bank examples use only the fictional institution", () => {
+  assert.deepEqual(INDIAN_BANK_CATALOG, ["NavaJyoti Bank (fictional)"]);
+  assert.equal(extractFictionalInstitution("Payment sent through NavaJyoti Bank (fictional)."), "NavaJyoti Bank (fictional)");
+  assert.equal(extractFictionalInstitution("Payment sent through Example National Bank."), null);
 });
 
 test("browser audio is normalized from magic bytes instead of trusting the filename", () => {

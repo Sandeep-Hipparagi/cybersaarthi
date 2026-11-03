@@ -44,7 +44,7 @@ The Quick Exit control is the only deliberate browser navigation in the product 
 - The signed session response supplies the displayed account name, role, and email.
 - D1 supplies case titles, reporter names, statuses, districts, timestamps, facts, messages, events, and graph signals.
 - New case references are cryptographically generated as `YYMMDD` plus eight random digits.
-- Six synthetic seed records use valid 14-digit prototype references, realistic Indian bank names, 12-digit synthetic UTRs, cross-district task-scam relationships, and clearly synthetic people/channels.
+- Six synthetic seed records use valid 14-digit prototype references, the explicitly fictional NavaJyoti Bank, 12-digit synthetic UTRs, cross-district task-scam relationships, and clearly synthetic people/channels.
 - The bank input uses a display catalog and permits exact manual entry. CyberSaarthi never infers a bank from a UTR prefix.
 - Legacy six-character fixture IDs are migrated in place to the 14-digit format, including event, message, identifier, pattern, and relationship rows.
 - Unknown values render as unknown. They are not silently repaired by a UI fallback.

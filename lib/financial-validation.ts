@@ -15,21 +15,17 @@ export type FinancialDraft = {
 export type FinancialDraftField = keyof FinancialDraft;
 
 /**
- * Reference data for the synthetic prototype form. This is a display catalog,
- * not a live bank directory and is never used to infer a bank from a UTR.
+ * Fictional reference data for the synthetic prototype form. This is not a live
+ * bank directory and is never used to infer an institution from a UTR.
  */
 export const INDIAN_BANK_CATALOG = [
-  "State Bank of India",
-  "HDFC Bank",
-  "ICICI Bank",
-  "Axis Bank",
-  "Punjab National Bank",
-  "Bank of Baroda",
-  "Canara Bank",
-  "Union Bank of India",
-  "Kotak Mahindra Bank",
-  "IndusInd Bank",
+  "NavaJyoti Bank (fictional)",
 ] as const;
+
+/** Extract only the named fictional institution from synthetic demo narration. */
+export function extractFictionalInstitution(story: string): string | null {
+  return story.match(/\b(NavaJyoti Bank(?: \(fictional\))?)(?![A-Za-z])/i)?.[1] ?? null;
+}
 
 export const EMPTY_FINANCIAL_DRAFT: FinancialDraft = {
   incidentDateTime: "",

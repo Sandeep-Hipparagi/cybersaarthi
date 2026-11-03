@@ -141,7 +141,7 @@ const SEED_CASES: Array<typeof cases.$inferInsert> = [
     urgency: "TIME_SENSITIVE",
     factsJson: JSON.stringify([
       { fieldId: "financial.lossAmount", label: "Reported loss", value: 25000, source: "Citizen-reviewed transcript" },
-      { fieldId: "financial.institution", label: "Bank", value: "State Bank of India", source: "Synthetic fixture" },
+      { fieldId: "financial.institution", label: "Bank", value: "NavaJyoti Bank (fictional)", source: "Synthetic fixture" },
       { fieldId: "transaction.reference", label: "Transaction reference", value: "409823771204", source: "Synthetic fixture" },
       { fieldId: "transaction.occurred_at", label: "Transaction time", value: "22 Aug 2026, 10:32 IST", source: "Synthetic fixture" },
       { fieldId: "incident.initialContact", label: "Initial contact", value: "SMS", source: "Citizen-reviewed transcript" },
@@ -172,7 +172,7 @@ const SEED_CASES: Array<typeof cases.$inferInsert> = [
     urgency: "TIME_SENSITIVE",
     factsJson: JSON.stringify([
       { fieldId: "financial.lossAmount", label: "Reported loss", value: 8500, source: "Synthetic fixture" },
-      { fieldId: "financial.institution", label: "Bank", value: "HDFC Bank", source: "Synthetic fixture" },
+      { fieldId: "financial.institution", label: "Bank", value: "NavaJyoti Bank (fictional)", source: "Synthetic fixture" },
       { fieldId: "transaction.reference", label: "Transaction reference", value: "409823771215", source: "Synthetic fixture" },
       { fieldId: "incident.channel", label: "Channel", value: "Marketplace link", source: "Synthetic fixture" },
     ]),
@@ -235,7 +235,7 @@ const SAARTHIGRAPH_SEED_CASES: Array<typeof cases.$inferInsert> = [
     urgency: "TIME_SENSITIVE",
     factsJson: JSON.stringify([
       { fieldId: "financial.lossAmount", label: "Reported loss", value: 12000, source: "Synthetic fixture" },
-      { fieldId: "financial.institution", label: "Bank", value: "Axis Bank", source: "Synthetic fixture" },
+      { fieldId: "financial.institution", label: "Bank", value: "NavaJyoti Bank (fictional)", source: "Synthetic fixture" },
       { fieldId: "suspect.upi_id", label: "Recipient UPI ID", value: "taskdesk42@okaxis", source: "Synthetic fixture" },
       { fieldId: "transaction.reference", label: "Transaction reference", value: "410020260841", source: "Synthetic fixture" },
       { fieldId: "incident.channel", label: "Initial channel", value: "Telegram", source: "Synthetic fixture" },
@@ -266,7 +266,7 @@ const SAARTHIGRAPH_SEED_CASES: Array<typeof cases.$inferInsert> = [
     urgency: "TIME_SENSITIVE",
     factsJson: JSON.stringify([
       { fieldId: "financial.lossAmount", label: "Reported loss", value: 18500, source: "Synthetic fixture" },
-      { fieldId: "financial.institution", label: "Bank", value: "ICICI Bank", source: "Synthetic fixture" },
+      { fieldId: "financial.institution", label: "Bank", value: "NavaJyoti Bank (fictional)", source: "Synthetic fixture" },
       { fieldId: "suspect.upi_id", label: "Recipient UPI ID", value: "taskdesk42@okaxis", source: "Synthetic fixture" },
       { fieldId: "transaction.reference", label: "Transaction reference", value: "410020260852", source: "Synthetic fixture" },
       { fieldId: "incident.channel", label: "Initial channel", value: "WhatsApp", source: "Synthetic fixture" },
@@ -297,7 +297,7 @@ const SAARTHIGRAPH_SEED_CASES: Array<typeof cases.$inferInsert> = [
     urgency: "TIME_SENSITIVE",
     factsJson: JSON.stringify([
       { fieldId: "financial.lossAmount", label: "Reported loss", value: 9600, source: "Synthetic fixture" },
-      { fieldId: "financial.institution", label: "Bank", value: "Punjab National Bank", source: "Synthetic fixture" },
+      { fieldId: "financial.institution", label: "Bank", value: "NavaJyoti Bank (fictional)", source: "Synthetic fixture" },
       { fieldId: "suspect.upi_id", label: "Recipient UPI ID", value: "taskdesk42@okaxis", source: "Synthetic fixture" },
       { fieldId: "transaction.reference", label: "Transaction reference", value: "410020260863", source: "Synthetic fixture" },
       { fieldId: "incident.channel", label: "Initial channel", value: "Messaging app", source: "Synthetic fixture" },
