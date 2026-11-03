@@ -69,7 +69,10 @@ test("keeps citizen UI language-generic and support-chat ready", async () => {
   assert.match(source, /Copy reviewed draft/);
   assert.match(source, /STRUCTURED FINANCIAL DETAILS/);
   assert.match(source, /\/api\/prepare-fields/);
-  assert.match(source, /Every value stays editable and requires your review/);
+  assert.match(source, /Values remain editable and require my review/);
+  assert.match(source, /I will use synthetic audio and consent to send recorded audio to Sarvam AI/);
+  assert.match(source, /I consent to send synthetic narration to Sarvam AI/);
+  assert.match(source, /DEMO ACCESS DISABLED/);
   assert.match(source, /No penal section is treated as final/);
   assert.match(source, /Simulation only · no call or report was sent/);
   assert.match(source, /className="button primary full"[^>]*onClick=\{\(\) => void onJudgeLogin\(\)\}/);
