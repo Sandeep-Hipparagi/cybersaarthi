@@ -169,8 +169,9 @@ async function sarvamFinancialFields(story: string): Promise<{
 export async function extractNarrationFinancialFields(
   story: string,
   facts: Array<Record<string, unknown>>,
+  allowProvider = false,
 ): Promise<NarrationFieldExtraction> {
-  const live = await sarvamFinancialFields(story);
+  const live = allowProvider ? await sarvamFinancialFields(story) : null;
   if (live) {
     return {
       ...live,
@@ -185,6 +186,8 @@ export async function extractNarrationFinancialFields(
     model: null,
     synthetic: true,
     requiresHumanConfirmation: true,
-    warnings: ["The configured language model was unavailable; source-linked deterministic fields were used."],
+    warnings: [allowProvider
+      ? "The configured language model was unavailable; source-linked deterministic fields were used."
+      : "External model processing was not authorized; source-linked deterministic fields were used."],
   };
 }

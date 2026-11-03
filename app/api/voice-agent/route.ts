@@ -117,11 +117,17 @@ export async function POST(request: Request) {
     step?: number;
     nativeAnswer?: string;
     englishAnswer?: string;
+    synthetic?: boolean;
+    processingNoticeAccepted?: boolean;
   };
   try {
     body = (await request.json()) as typeof body;
   } catch {
     return Response.json({ error: "Request body must be valid JSON." }, { status: 400 });
+  }
+
+  if (body.synthetic !== true || body.processingNoticeAccepted !== true) {
+    return Response.json({ error: "Confirm synthetic content and voice-processing consent before continuing." }, { status: 422 });
   }
 
   const step = Number.isInteger(body.step) ? Number(body.step) : 0;

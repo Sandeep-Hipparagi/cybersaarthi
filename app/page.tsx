@@ -158,6 +158,7 @@ type CaseActionHandler = (
   action: string,
   note: string,
   relationshipId?: string,
+  assistantProcessingAccepted?: boolean,
 ) => Promise<CaseActionResponse>;
 type VoiceAgentReply = {
   selectedAgentId: string;
@@ -430,11 +431,13 @@ function LoginScreen({
   onJudgeLogin,
   busy,
   error,
+  enabled,
 }: {
   onLogin: (email: string, password: string) => Promise<void>;
   onJudgeLogin: () => Promise<void>;
   busy: boolean;
   error: string;
+  enabled: boolean;
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -487,7 +490,7 @@ function LoginScreen({
       <section className="login-panel" aria-labelledby="signin-title">
         <Brand />
         <SyntheticBanner />
-        <div className="panel-heading">
+        {!enabled ? <div className="panel-heading"><span className="step-label">DEMO ACCESS DISABLED</span><h2 id="signin-title">Identity provider required</h2><p>Fixed demo accounts are disabled in this deployment. Configure a managed identity provider before accepting any user data.</p></div> : <><div className="panel-heading">
           <span className="step-label">DEMO ACCESS</span>
           <h2 id="signin-title">Judge’s Test Mode</h2>
           <p>One click enters the complete citizen journey. No OTP or registration.</p>
@@ -509,6 +512,7 @@ function LoginScreen({
             <button className="button primary" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
           </form>
         </section>
+        </>}
         {error && <p className="form-error" role="alert">{error}</p>}
         <p className="login-footnote">Secure demo access · no OTP · resettable synthetic data</p>
       </section>
@@ -581,6 +585,8 @@ function IntakeWorkspace({
   const [agentStep, setAgentStep] = useState(0);
   const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
   const [evidenceConsent, setEvidenceConsent] = useState(false);
+  const [voiceProcessingConsent, setVoiceProcessingConsent] = useState(false);
+  const [financialProviderConsent, setFinancialProviderConsent] = useState(false);
   const [evidenceUploads, setEvidenceUploads] = useState<EvidenceUpload[]>([]);
   const [verifiedEvidence, setVerifiedEvidence] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
@@ -760,13 +766,14 @@ function IntakeWorkspace({
   }
 
   async function startVoiceAgent() {
+    if (!voiceProcessingConsent) { setError("Confirm synthetic voice processing before starting the voice guide."); return; }
     setBusy(true);
     setError("");
     try {
       const payload = await readJson<VoiceAgentReply>(await fetch("/api/voice-agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "START", step: 0 }),
+        body: JSON.stringify({ action: "START", step: 0, synthetic: true, processingNoticeAccepted: true }),
       }));
       setAgentStarted(true);
       setAgentComplete(false);
@@ -797,6 +804,8 @@ function IntakeWorkspace({
         step: agentStep,
         nativeAnswer,
         englishAnswer,
+        synthetic: true,
+        processingNoticeAccepted: true,
       }),
     }));
     const citizenNative = payload.answerNative || nativeAnswer;
@@ -874,6 +883,7 @@ function IntakeWorkspace({
     setError("");
     setVoiceNotice("");
     if (microphonePending || recording || transcribing) return;
+    if (!voiceProcessingConsent) { setError("Confirm synthetic audio and consent to provider processing before recording."); return; }
     if (!asr.configured) {
       setError("Live voice transcription is unavailable right now. Try the working voice example or type your answer.");
       return;
@@ -998,6 +1008,7 @@ function IntakeWorkspace({
     const form = new FormData();
     form.append("audio", audioBlob, audioFilename(audioBlob.type));
     form.append("processingNoticeAccepted", "true");
+    form.append("synthetic", "true");
     try {
       const payload = await readJson<{
         title: string;
@@ -1053,7 +1064,8 @@ function IntakeWorkspace({
     form.append("image", upload.file, upload.file.name);
     form.append("consent", "true");
     form.append("synthetic", "true");
-    form.append("mode", evidenceStatus.configured ? "OPENAI" : "DEMO");
+    form.append("mode", evidenceStatus.configured && evidenceConsent ? "OPENAI" : "DEMO");
+    if (evidenceStatus.configured && evidenceConsent) form.append("providerConsent", "true");
     try {
       const result = await readJson<EvidenceAnalysisResponse>(await fetch("/api/evidence/analyse", {
         method: "POST",
@@ -1160,7 +1172,7 @@ function IntakeWorkspace({
       const response = await readJson<CyberSaarthiResponse>(await fetch("/api/prepare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ story: workingStory, language: "Auto-detected or citizen-entered", mode: "DEMO" }),
+        body: JSON.stringify({ story: workingStory, language: "Auto-detected or citizen-entered", mode: "DEMO", synthetic: true }),
       }));
       setPrepared(response);
       setRoute(response.classification.topLevelRoute);
@@ -1181,7 +1193,7 @@ function IntakeWorkspace({
           story: workingStory,
           facts: response.candidateFacts,
           synthetic: true,
-          modelProcessingAccepted: true,
+          modelProcessingAccepted: financialProviderConsent,
         }),
       })
         .then((result) => readJson<NarrationFieldExtraction>(result))
@@ -1441,7 +1453,8 @@ function IntakeWorkspace({
                 <div className="agent-welcome">
                   <h2>Ready when you are.</h2>
                   <p>Speak naturally. We will ask what happened, whether money moved, what evidence you have, and your district.</p>
-                  <button type="button" className="button primary" disabled={busy} aria-busy={busy} onClick={() => void startVoiceAgent()}>
+                  <label className="processing-note"><input type="checkbox" checked={voiceProcessingConsent} onChange={(event) => setVoiceProcessingConsent(event.target.checked)} /> I will use synthetic voice content and consent to send recorded audio to Sarvam AI for transcription when configured. Audio is not saved with my case.</label>
+                  <button type="button" className="button primary" disabled={busy || !voiceProcessingConsent} aria-busy={busy} onClick={() => void startVoiceAgent()}>
                     {busy ? "Starting…" : "Start voice guide"}<span aria-hidden="true">→</span>
                   </button>
                 </div>
@@ -1465,11 +1478,11 @@ function IntakeWorkspace({
                     <button type="button" className="button secondary" disabled={busy} onClick={() => speaking ? stopActiveAudio() : void playAgentPrompt(agentMessages.at(-1)?.native || "", languageCode)}>{speaking ? "Stop playback" : agentComplete ? "Play closing message" : "Play question"}</button>
                     <button type="button" className="text-button" disabled={busy} onClick={() => speakWithDevice(agentMessages.at(-1)?.native || "", languageCode)}>Use device voice</button>
                     {!agentComplete && <button type="button" className="button secondary" disabled={busy || recording || microphonePending || transcribing} onClick={() => void runSyntheticAgentReply()}>Try working voice example</button>}
-                    {!agentComplete && !recording && <button type="button" className="button dark" disabled={busy || microphonePending || transcribing} onClick={() => void startRecording("AGENT_REPLY")}>{microphonePending && captureTarget === "AGENT_REPLY" ? "Opening microphone…" : "Speak reply"}</button>}
+                    {!agentComplete && !recording && <button type="button" className="button dark" disabled={busy || !voiceProcessingConsent || microphonePending || transcribing} onClick={() => void startRecording("AGENT_REPLY")}>{microphonePending && captureTarget === "AGENT_REPLY" ? "Opening microphone…" : "Speak reply"}</button>}
                     {recording && captureTarget === "AGENT_REPLY" && <button type="button" className="button danger" disabled={!recordingHasMinimum} onClick={stopRecording}>{recordingHasMinimum ? "Stop & use reply" : "Speak now…"}</button>}
                   </div>
                   {voiceNotice && <p className="voice-note" role="status">{voiceNotice}</p>}
-                  {!agentComplete && <p className="processing-note">Starting the microphone sends this clip for transcription. The audio is not saved with your case.</p>}
+                  {!agentComplete && <><label className="processing-note"><input type="checkbox" checked={voiceProcessingConsent} onChange={(event) => setVoiceProcessingConsent(event.target.checked)} /> I will use synthetic voice content and consent to send recorded audio to Sarvam AI for transcription when configured. Audio is not saved with my case.</label><p className="processing-note">Recorded audio is sent to Sarvam AI when configured and is not saved with your case.</p></>}
                   {agentComplete && (
                     <div className="agent-working-copy">
                       <div className="completion-note"><strong>Conversation captured</strong><span>Review your narration before preparing facts.</span></div>
@@ -1492,13 +1505,14 @@ function IntakeWorkspace({
                 </div>
                 <div className="voice-actions">
                   <button type="button" className="button secondary" disabled={busy || recording || microphonePending || transcribing} onClick={() => void loadFixture()}>Try working voice example</button>
-                  {!recording && <button type="button" className="button dark" disabled={busy || microphonePending || transcribing} onClick={() => void startRecording("NARRATION")}>{microphonePending && captureTarget === "NARRATION" ? "Opening microphone…" : "Start dictation"}</button>}
+                  {!recording && <button type="button" className="button dark" disabled={busy || !voiceProcessingConsent || microphonePending || transcribing} onClick={() => void startRecording("NARRATION")}>{microphonePending && captureTarget === "NARRATION" ? "Opening microphone…" : "Start dictation"}</button>}
                   {recording && captureTarget === "NARRATION" && <button type="button" className="button danger" disabled={!recordingHasMinimum} onClick={stopRecording}>{recordingHasMinimum ? "Stop & add to narration" : "Speak now…"}</button>}
                 </div>
+                <label className="processing-note"><input type="checkbox" checked={voiceProcessingConsent} onChange={(event) => setVoiceProcessingConsent(event.target.checked)} /> I will use synthetic audio and consent to send recorded audio to Sarvam AI for transcription when configured. Audio is not saved with my case.</label>
               </div>
               {(microphonePending || transcribing) && <div className="transcription-progress" role="status"><span className="spinner" />{microphonePending ? "Opening your microphone…" : "Turning your voice into text…"}</div>}
               {voiceNotice && <p className="voice-note" role="status">{voiceNotice}</p>}
-              <p className="processing-note">Starting dictation sends this clip for transcription. The audio is not saved with your case.</p>
+              <p className="processing-note">Recorded audio is sent to Sarvam AI when configured and is not saved with your case.</p>
 
               <label className="field-label" htmlFor="native-story">Your narration</label>
               <textarea
@@ -1552,7 +1566,7 @@ function IntakeWorkspace({
                     <strong>Synthetic examples only</strong>
                   </div>
                   <p>Blank fields stay unknown. Formatting never invents or repairs an identifier.</p>
-                  <p className="processing-note">Source-linked narration may be proposed by the configured language model. Every value stays editable and requires your review.</p>
+                  <label className="processing-note"><input type="checkbox" checked={financialProviderConsent} onChange={(event) => setFinancialProviderConsent(event.target.checked)} /> I consent to send synthetic narration to Sarvam AI for field extraction when configured. Values remain editable and require my review.</label>
                   <div className="financial-grid">
                     <label>
                       Incident date and time
@@ -1703,7 +1717,7 @@ function IntakeWorkspace({
             <p>Drop a synthetic chat, bank-message, or payment screenshot. We find useful identifiers; you confirm every result.</p>
             <label className="evidence-consent">
               <input type="checkbox" checked={evidenceConsent} onChange={(event) => setEvidenceConsent(event.target.checked)} />
-              <span>I confirm these are synthetic screenshots and consent to analysis.</span>
+              <span>{evidenceStatus.configured ? "I confirm these are synthetic screenshots and consent to send them to OpenAI for analysis." : "I confirm these are synthetic screenshots and consent to deterministic demo analysis."}</span>
             </label>
             <label
               className={`evidence-drop ${evidenceConsent ? "ready" : "locked"}`}
@@ -2136,6 +2150,7 @@ function SupportWorkspace({
   const [note, setNote] = useState("");
   const [optimisticMessage, setOptimisticMessage] = useState<SupportMessage | null>(null);
   const [awaitingReply, setAwaitingReply] = useState(false);
+  const [assistantConsent, setAssistantConsent] = useState(false);
   const chatEnd = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -2156,7 +2171,7 @@ function SupportWorkspace({
       createdAt: new Date().toISOString(),
     });
     setAwaitingReply(true);
-    const result = await onAction("FOLLOW_UP", outgoing);
+    const result = await onAction("FOLLOW_UP", outgoing, undefined, assistantConsent);
     if (!result.updated) setNote(outgoing);
     setOptimisticMessage(null);
     setAwaitingReply(false);
@@ -2181,7 +2196,7 @@ function SupportWorkspace({
           </div>
           {selected.status === "CLOSED_SETTLED"
             ? <div className="support-closed"><strong>Conversation closed</strong><span>This case is read-only because the citizen marked the funds settled. Delete it from My cases if it is no longer needed.</span></div>
-            : <div className="support-composer"><label htmlFor="support-note">Message CyberSaarthi</label><textarea id="support-note" rows={4} value={note} disabled={awaitingReply} onChange={(event) => setNote(event.target.value)} placeholder="Add a new detail or ask what to do next…" /><div><small>{awaitingReply ? "Preparing a case-aware reply…" : "Your message appears immediately and remains in the case trace."}</small><button type="button" className="button primary" disabled={busy || awaitingReply || !note.trim()} aria-busy={awaitingReply} onClick={() => void sendFollowUp()}>{awaitingReply ? "Replying…" : "Send message"}</button></div></div>}
+            : <div className="support-composer"><label htmlFor="support-note">Message CyberSaarthi</label><textarea id="support-note" rows={4} value={note} disabled={awaitingReply} onChange={(event) => setNote(event.target.value)} placeholder="Add a new detail or ask what to do next…" /><label className="processing-note"><input type="checkbox" checked={assistantConsent} onChange={(event) => setAssistantConsent(event.target.checked)} /> I consent to send synthetic case context and this message to OpenAI for a support reply when configured. Otherwise a local reply is used.</label><div><small>{awaitingReply ? "Preparing a case-aware reply…" : "Your message appears immediately and remains in the case trace."}</small><button type="button" className="button primary" disabled={busy || awaitingReply || !note.trim()} aria-busy={awaitingReply} onClick={() => void sendFollowUp()}>{awaitingReply ? "Replying…" : "Send message"}</button></div></div>}
         </div>
       </div> : <div className="empty-state large">Save a case first, then return here for support and follow-ups.</div>}
     </section>
@@ -2275,6 +2290,7 @@ function EvaluatorConsole({
 
 export default function Home() {
   const [session, setSession] = useState<Session | null>(null);
+  const [demoAccessEnabled, setDemoAccessEnabled] = useState(false);
   const [asr, setAsr] = useState<AsrStatus>({ configured: false, model: "saaras:v3", syntheticFixtureAvailable: true, autoDetect: true, supportedLanguageCount: 23, maxRecordingSeconds: 28 });
   const [tts, setTts] = useState<TtsStatus>({ configured: false, model: "bulbul:v3", autoVoiceLanguage: true, supportedLanguageCount: 23, maxCharacters: 650 });
   const [evidenceStatus, setEvidenceStatus] = useState<EvidenceStatus>({
@@ -2310,18 +2326,21 @@ export default function Home() {
     let active = true;
     void (async () => {
       try {
-        const [statusResponse, ttsResponse, evidenceResponse, sessionResponse] = await Promise.all([
+        const [statusResponse, ttsResponse, evidenceResponse, sessionResponse, demoAccessResponse] = await Promise.all([
           fetch("/api/asr", { cache: "no-store" }),
           fetch("/api/tts", { cache: "no-store" }),
           fetch("/api/evidence/analyse", { cache: "no-store" }),
           fetch("/api/auth/session", { cache: "no-store" }),
+          fetch("/api/auth/demo-access", { cache: "no-store" }),
         ]);
         const status = await readJson<AsrStatus>(statusResponse);
         const voice = await readJson<TtsStatus>(ttsResponse);
         const vision = await readJson<EvidenceStatus>(evidenceResponse);
+        const demoAccess = await readJson<{ enabled: boolean }>(demoAccessResponse);
         if (active) setAsr(status);
         if (active) setTts(voice);
         if (active) setEvidenceStatus(vision);
+        if (active) setDemoAccessEnabled(demoAccess.enabled);
         if (sessionResponse.ok) {
           const payload = await readJson<{ session: Session }>(sessionResponse);
           if (active) {
@@ -2385,7 +2404,7 @@ export default function Home() {
     }
   }
 
-  async function caseAction(action: string, note: string, relationshipId?: string): Promise<CaseActionResponse> {
+  async function caseAction(action: string, note: string, relationshipId?: string, assistantProcessingAccepted = false): Promise<CaseActionResponse> {
     if (!selectedId) return { updated: false, synthetic: true };
     setBusy(true);
     setError("");
@@ -2393,7 +2412,7 @@ export default function Home() {
       const payload = await readJson<CaseActionResponse>(await fetch("/api/cases/action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ caseId: selectedId, action, note, relationshipId, languageCode: "unknown" }),
+        body: JSON.stringify({ caseId: selectedId, action, note, relationshipId, languageCode: "unknown", assistantProcessingAccepted }),
       }));
       await refreshCases();
       return payload;
@@ -2428,7 +2447,7 @@ export default function Home() {
   if (!session) return (
     <>
       <a className="skip-link" href="#main-content">Skip to main content</a>
-      <LoginScreen onLogin={login} onJudgeLogin={judgeLogin} busy={busy} error={error} />
+      <LoginScreen onLogin={login} onJudgeLogin={judgeLogin} busy={busy} error={error} enabled={demoAccessEnabled} />
       <QuickExitButton onPurge={purgeInMemory} />
     </>
   );

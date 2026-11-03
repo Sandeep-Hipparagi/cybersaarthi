@@ -17,6 +17,7 @@ type ActionBody = {
   note?: unknown;
   languageCode?: unknown;
   relationshipId?: unknown;
+  assistantProcessingAccepted?: unknown;
 };
 
 const ACTIONS = [
@@ -93,7 +94,7 @@ export async function POST(request: Request) {
       const citizenMessage = await addSupportMessage(session, caseId, note, languageCode);
       if (action === "FOLLOW_UP") {
         const context = await getSupportCaseContext(session, caseId, note);
-        const generated = await generateSupportAssistantReply(context);
+        const generated = await generateSupportAssistantReply(context, body.assistantProcessingAccepted === true);
         const assistantMessage = await addAssistantSupportMessage(
           session,
           caseId,

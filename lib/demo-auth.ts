@@ -13,6 +13,13 @@ const COOKIE_NAME = "cybersaarthi_demo_session";
 const PASSWORD_SALT = "cybersaarthi-demo-v1";
 const SESSION_SECONDS = 4 * 60 * 60;
 
+export function demoAccessEnabled(): boolean {
+  const configured = process.env.DEMO_ACCESS_ENABLED?.trim().toLowerCase();
+  if (configured === "true") return true;
+  if (configured === "false") return false;
+  return process.env.NODE_ENV !== "production";
+}
+
 export const JUDGE_DEMO_ACCOUNT = {
   email: "citizen@test.com",
   password: "test2026",
@@ -93,6 +100,7 @@ export async function authenticateDemoUser(
   email: string,
   password: string,
 ): Promise<DemoSession | null> {
+  if (!demoAccessEnabled()) return null;
   const user = DEMO_USERS.find((candidate) => candidate.email === email.trim().toLowerCase());
   if (!user) return null;
   const suppliedHash = await sha256Hex(`${PASSWORD_SALT}:${password}`);
@@ -141,6 +149,7 @@ function readCookie(request: Request): string | null {
 
 export async function readDemoSession(request: Request): Promise<DemoSession | null> {
   try {
+    if (!demoAccessEnabled()) return null;
     const token = readCookie(request);
     if (!token) return null;
     const [encodedPayload, encodedSignature] = token.split(".");

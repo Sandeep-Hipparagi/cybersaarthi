@@ -237,6 +237,9 @@ export async function POST(request: Request) {
   if (requestedMode !== "DEMO" && requestedMode !== "OPENAI") {
     return Response.json({ error: "Choose DEMO or OPENAI evidence analysis." }, { status: 400 });
   }
+  if (requestedMode === "OPENAI" && form.get("providerConsent") !== "true") {
+    return Response.json({ error: "Consent to OpenAI processing before sending this synthetic screenshot." }, { status: 400 });
+  }
 
   const evidenceId = `EVI-${crypto.randomUUID()}`;
   try {

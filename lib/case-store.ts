@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, lt, or } from "drizzle-orm";
 import {
   caseEvents,
   caseGraphIdentifiers,
@@ -8,6 +8,7 @@ import {
   supportMessages,
 } from "../db/schema";
 import { getDb } from "../db";
+import { expiredSyntheticCaseIds } from "./retention-policy";
 import type { DemoSession } from "./demo-auth";
 import {
   buildSubmissionReadiness,
@@ -612,6 +613,7 @@ async function findDuplicateCase(
 
 export async function listCases(session: DemoSession): Promise<CaseRecord[]> {
   await ensureSeededCases();
+  await purgeExpiredSyntheticCases();
   const db = getDb();
   const rows = session.role === "EVALUATOR"
     ? await db.select().from(cases).orderBy(desc(cases.updatedAt))
@@ -665,6 +667,29 @@ export async function listCases(session: DemoSession): Promise<CaseRecord[]> {
   }
 
   return rows.map((row) => hydrateCase(row, eventsByCase, messagesByCase, intelligenceByCase));
+}
+
+export async function purgeExpiredSyntheticCases(
+  now = new Date(),
+  retentionDays = 30,
+): Promise<number> {
+  const cutoff = new Date(now.getTime() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
+  const db = getDb();
+  const expired = await db.select({ id: cases.id, synthetic: cases.synthetic, createdAt: cases.createdAt }).from(cases)
+    .where(and(eq(cases.synthetic, true), lt(cases.createdAt, cutoff)));
+  const expiredIds = expiredSyntheticCaseIds(expired, now, retentionDays);
+  for (const id of expiredIds) {
+    await db.batch([
+      db.delete(caseRelationships).where(or(eq(caseRelationships.sourceCaseId, id), eq(caseRelationships.targetCaseId, id))),
+      db.delete(caseEvents).where(eq(caseEvents.caseId, id)),
+      db.delete(supportMessages).where(eq(supportMessages.caseId, id)),
+      db.delete(casePatternMatches).where(eq(casePatternMatches.caseId, id)),
+      db.delete(caseGraphIdentifiers).where(eq(caseGraphIdentifiers.caseId, id)),
+      db.delete(cases).where(eq(cases.id, id)),
+    ]);
+    await deleteCaseWorkflowRecords(id);
+  }
+  return expiredIds.length;
 }
 
 async function findAuthorisedCase(caseId: string, session: DemoSession): Promise<CaseRow> {

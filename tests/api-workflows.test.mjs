@@ -53,6 +53,7 @@ test("all independent prototype API workflows", async (t) => {
   delete process.env.SARVAM_TRANSLATION_MODEL;
   delete process.env.OPENAI_API_KEY;
   delete process.env.OPENAI_SUPPORT_MODEL;
+  process.env.DEMO_ACCESS_ENABLED = "true";
 
   const mf = new Miniflare({
     compatibilityDate: "2026-05-22",
@@ -181,9 +182,14 @@ test("all independent prototype API workflows", async (t) => {
     assert.equal(status.body.autoDetect, true);
     assert.ok(status.body.supportedLanguageCount >= 23);
 
+    process.env.DEMO_ACCESS_ENABLED = "false";
+    assert.equal((await api("/api/auth/login", { json: CITIZEN })).status, 401);
+    assert.equal((await api("/api/auth/session", { cookie: citizenCookie })).status, 401);
+    process.env.DEMO_ACCESS_ENABLED = "true";
+
     const fixture = await responseJson(await api("/api/asr", {
       cookie: citizenCookie,
-      json: { fixture: true },
+      json: { fixture: true, synthetic: true },
     }));
     assert.equal(fixture.response.status, 200);
     assert.equal(fixture.body.synthetic, true);
@@ -199,11 +205,13 @@ test("all independent prototype API workflows", async (t) => {
 
     const noNotice = new FormData();
     noNotice.set("audio", new File([SYNTHETIC_WEBM_BYTES], "fixture.webm", { type: "audio/webm" }));
+    noNotice.set("synthetic", "true");
     assert.equal((await api("/api/asr", { cookie: citizenCookie, body: noNotice })).status, 422);
 
     const notConfigured = new FormData();
     notConfigured.set("audio", new File([SYNTHETIC_WEBM_BYTES], "fixture.webm", { type: "audio/webm" }));
     notConfigured.set("processingNoticeAccepted", "true");
+    notConfigured.set("synthetic", "true");
     assert.equal((await api("/api/asr", { cookie: citizenCookie, body: notConfigured })).status, 503);
 
     const originalFetch = globalThis.fetch;
@@ -242,6 +250,7 @@ test("all independent prototype API workflows", async (t) => {
       const liveForm = new FormData();
       liveForm.set("audio", new File([SYNTHETIC_WEBM_BYTES], "citizen.webm", { type: "audio/webm" }));
       liveForm.set("processingNoticeAccepted", "true");
+      liveForm.set("synthetic", "true");
       const live = await responseJson(await api("/api/asr", { cookie: citizenCookie, body: liveForm }));
       assert.equal(live.response.status, 200);
       assert.equal(live.body.nativeTranscript, "Original voice account in the detected language.");
@@ -262,6 +271,7 @@ test("all independent prototype API workflows", async (t) => {
       const safariForm = new FormData();
       safariForm.set("audio", new File([SYNTHETIC_M4A_BYTES], "citizen.m4a", { type: "audio/mp4" }));
       safariForm.set("processingNoticeAccepted", "true");
+      safariForm.set("synthetic", "true");
       const fallback = await responseJson(await api("/api/asr", { cookie: citizenCookie, body: safariForm }));
       assert.equal(fallback.response.status, 200, "translation failure must not discard successful dictation");
       assert.equal(fallback.body.nativeTranscript, "Original voice account in the detected language.");
@@ -280,6 +290,7 @@ test("all independent prototype API workflows", async (t) => {
       const failedForm = new FormData();
       failedForm.set("audio", new File([SYNTHETIC_WEBM_BYTES], "citizen.webm", { type: "audio/webm" }));
       failedForm.set("processingNoticeAccepted", "true");
+      failedForm.set("synthetic", "true");
       const failed = await responseJson(await api("/api/asr", { cookie: citizenCookie, body: failedForm }));
       assert.equal(failed.response.status, 502, "a failed transcription must not be replaced with a different semantic mode");
       assert.equal(failed.body.code, "VOICE_TRANSCRIPTION_FAILED_503");
@@ -358,7 +369,7 @@ test("all independent prototype API workflows", async (t) => {
 
     const start = await responseJson(await api("/api/voice-agent", {
       cookie: citizenCookie,
-      json: { action: "START", step: 0 },
+      json: { action: "START", step: 0, synthetic: true, processingNoticeAccepted: true },
     }));
     assert.equal(start.response.status, 200);
     assert.equal(start.body.step, 0);
@@ -368,7 +379,7 @@ test("all independent prototype API workflows", async (t) => {
     for (let step = 0; step < 4; step += 1) {
       turn = await responseJson(await api("/api/voice-agent", {
         cookie: citizenCookie,
-        json: { action: "SYNTHETIC_TURN", step },
+        json: { action: "SYNTHETIC_TURN", step, synthetic: true, processingNoticeAccepted: true },
       }));
       assert.equal(turn.response.status, 200);
       assert.equal(turn.body.step, step + 1);
@@ -381,7 +392,7 @@ test("all independent prototype API workflows", async (t) => {
 
     assert.equal((await api("/api/voice-agent", {
       cookie: citizenCookie,
-      json: { action: "SYNTHETIC_TURN", step: 99 },
+      json: { action: "SYNTHETIC_TURN", step: 99, synthetic: true, processingNoticeAccepted: true },
     })).status, 400);
 
     const originalFetch = globalThis.fetch;
@@ -401,6 +412,8 @@ test("all independent prototype API workflows", async (t) => {
           step: 0,
           nativeAnswer: "A detailed answer in the citizen's detected language.",
           englishAnswer: "A detailed English working copy.",
+          synthetic: true,
+          processingNoticeAccepted: true,
         },
       }));
       assert.equal(liveTurn.response.status, 200);
@@ -495,6 +508,8 @@ test("all independent prototype API workflows", async (t) => {
       liveForm.set("consent", "true");
       liveForm.set("synthetic", "true");
       liveForm.set("mode", "OPENAI");
+      assert.equal((await api("/api/evidence/analyse", { cookie: citizenCookie, body: liveForm })).status, 400, "provider mode requires provider-specific consent");
+      liveForm.set("providerConsent", "true");
       const live = await responseJson(await api("/api/evidence/analyse", { cookie: citizenCookie, body: liveForm }));
       assert.equal(live.response.status, 200);
       assert.equal(live.body.mode, "OPENAI");
@@ -515,7 +530,7 @@ test("all independent prototype API workflows", async (t) => {
     const story = "I received a payment link and a synthetic debit of ₹12,000 from NavaJyoti Bank (fictional) on 22 August 2026 at 10:42 AM. The synthetic UTR is 628415739201.";
     const demo = await responseJson(await api("/api/prepare", {
       cookie: citizenCookie,
-      json: { story, language: "English", mode: "DEMO" },
+      json: { story, language: "English", mode: "DEMO", synthetic: true },
     }));
     assert.equal(demo.response.status, 200);
     prepared = demo.body;
@@ -538,6 +553,7 @@ test("all independent prototype API workflows", async (t) => {
         story: "Mera bank account block ho gaya, link click karne ke baad OTP share kiya",
         language: "Auto-detected",
         mode: "DEMO",
+        synthetic: true,
       },
     }));
     assert.equal(codeMixed.response.status, 200);
@@ -558,7 +574,7 @@ test("all independent prototype API workflows", async (t) => {
     try {
       const openAI = await responseJson(await api("/api/prepare", {
         cookie: citizenCookie,
-        json: { story, language: "English", mode: "OPENAI", consent: true },
+        json: { story, language: "English", mode: "OPENAI", consent: true, synthetic: true },
       }));
       assert.equal(openAI.response.status, 200);
       assert.equal(openAI.body.mode, "OPENAI");
@@ -569,7 +585,7 @@ test("all independent prototype API workflows", async (t) => {
       providerOutput = { ...providerOutput, undeclaredField: true };
       assert.equal((await api("/api/prepare", {
         cookie: citizenCookie,
-        json: { story, language: "English", mode: "OPENAI", consent: true },
+        json: { story, language: "English", mode: "OPENAI", consent: true, synthetic: true },
       })).status, 502, "runtime validation must reject undeclared provider fields");
     } finally {
       globalThis.fetch = originalFetch;
@@ -588,11 +604,11 @@ test("all independent prototype API workflows", async (t) => {
     })).status, 400);
     assert.equal((await api("/api/prepare", {
       cookie: citizenCookie,
-      json: { story, language: "English", mode: "OPENAI", consent: false },
+        json: { story, language: "English", mode: "OPENAI", consent: false, synthetic: true },
     })).status, 400);
     assert.equal((await api("/api/prepare", {
       cookie: citizenCookie,
-      json: { story, language: "English", mode: "OPENAI", consent: true },
+      json: { story, language: "English", mode: "OPENAI", consent: true, synthetic: true },
     })).status, 503);
   });
 
@@ -615,8 +631,15 @@ test("all independent prototype API workflows", async (t) => {
 
     assert.equal((await api("/api/prepare-fields", {
       cookie: citizenCookie,
-      json: { story, facts: [], synthetic: true, modelProcessingAccepted: false },
+      json: { story, facts: [], synthetic: false, modelProcessingAccepted: false },
     })).status, 422);
+
+    const deterministicNoConsent = await responseJson(await api("/api/prepare-fields", {
+      cookie: citizenCookie,
+      json: { story, facts: prepared.candidateFacts, synthetic: true, modelProcessingAccepted: false },
+    }));
+    assert.equal(deterministicNoConsent.response.status, 200);
+    assert.equal(deterministicNoConsent.body.provider, "DETERMINISTIC_FALLBACK");
 
     const originalFetch = globalThis.fetch;
     let providerRequest;
@@ -874,7 +897,7 @@ test("all independent prototype API workflows", async (t) => {
     try {
       const liveReply = await responseJson(await api("/api/cases/action", {
         cookie: citizenCookie,
-        json: { caseId, action: "FOLLOW_UP", note: "The corrected transaction time is 2:35 PM.", languageCode: "unknown" },
+        json: { caseId, action: "FOLLOW_UP", note: "The corrected transaction time is 2:35 PM.", languageCode: "unknown", assistantProcessingAccepted: true },
       }));
       assert.equal(liveReply.response.status, 200);
       assert.equal(liveReply.body.replyProvider, "OPENAI");

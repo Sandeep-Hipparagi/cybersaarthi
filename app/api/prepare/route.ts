@@ -14,6 +14,7 @@ type PrepareRequest = {
   language?: string;
   mode?: "DEMO" | "OPENAI";
   consent?: boolean;
+  synthetic?: boolean;
 };
 
 function extractOutputText(payload: unknown): string | null {
@@ -108,6 +109,9 @@ export async function POST(request: Request) {
 
   if (mode !== "DEMO" && mode !== "OPENAI") {
     return Response.json({ error: "Choose DEMO or OPENAI preparation mode." }, { status: 400 });
+  }
+  if (body.synthetic !== true) {
+    return Response.json({ error: "Only synthetic narration is accepted in this prototype." }, { status: 422 });
   }
 
   if (story.length < 20) {

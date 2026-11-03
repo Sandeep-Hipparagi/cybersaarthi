@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { expiredSyntheticCaseIds } from "../lib/retention-policy.ts";
 
 import {
   chronologicalEvents,
@@ -18,6 +19,18 @@ import {
   detectBrowserAudioContainer,
   normalizeBrowserAudioFile,
 } from "../lib/audio-validation.ts";
+
+test("retention deletes only expired user-created synthetic cases", () => {
+  const now = new Date("2026-11-03T00:00:00.000Z");
+  const cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  assert.deepEqual(expiredSyntheticCaseIds([
+    { id: "user-old", synthetic: true, createdAt: "2026-09-01T00:00:00.000Z" },
+    { id: "user-new", synthetic: true, createdAt: "2026-10-30T00:00:00.000Z" },
+    { id: "CYS-DEMO-26082200000001", synthetic: true, createdAt: "2026-01-01T00:00:00.000Z" },
+    { id: "non-synthetic", synthetic: false, createdAt: "2026-01-01T00:00:00.000Z" },
+    { id: "on-cutoff", synthetic: true, createdAt: cutoffDate },
+  ], now), ["user-old"]);
+});
 
 test("workflow validation rejects invalid identifiers and sanitizes without crashing", () => {
   assert.equal(exactUtr("4321 9876 5012"), "432198765012");

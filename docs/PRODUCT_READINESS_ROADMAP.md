@@ -59,23 +59,25 @@ security, operations, and product owners approve the release boundary.
 
 ## GitHub Actions deployment setup
 
-`.github/workflows/deploy-vercel.yml` deploys only after the `CI` workflow
-succeeds for a push to `main`. Configure these repository or `production`
-environment secrets before merging/pushing a production change:
-
-- `VERCEL_TOKEN`
-- `VERCEL_ORG_ID`
-- `VERCEL_PROJECT_ID`
-
-The workflow pulls production environment settings, builds with the Vercel CLI,
-and deploys the prebuilt artifact. Protect the `production` GitHub environment
-with the approvals and branch rules required by the release policy. Verify the
-deployed URL and critical flows after each deployment.
+Vercel's native Git integration deploys repository pushes. GitHub Actions runs
+quality checks only; a duplicate CLI deployment workflow was removed because it
+required unconfigured Vercel credentials and the project already has Git
+integration. Configure Vercel Deployment Checks or GitHub branch protection so
+required CI checks pass before production promotion. Vercel Cron calls
+`/api/maintenance/retention` daily; configure `CRON_SECRET` in Vercel production
+environment variables. Verify the deployment URL and critical flows after each
+deployment. A protected deployment may require an authenticated share URL for
+external checks.
 
 ## Implementation record
 
 - CI now executes lint, the existing API/D1 end-to-end suite, and rendered
   application checks in addition to the existing type, schema, and unit jobs.
+- Fixed demo credentials fail closed in production unless `DEMO_ACCESS_ENABLED`
+  is explicitly enabled for a synthetic demonstration; existing sessions are
+  rejected when disabled.
+- External AI providers require per-action consent. The prototype remains
+  synthetic-only; case deletion and 30-day cleanup apply to user-created records.
 - Local verification on 2026-11-03: `npm ci` completed; ESLint passed via the
   installed CLI; TypeScript `--noEmit` passed; migration/schema integrity passed
   (8 tables, 4 migrations); the production vinext build passed; all 19 tests

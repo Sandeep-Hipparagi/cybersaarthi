@@ -126,11 +126,11 @@ export async function POST(request: Request) {
   try { await requireDemoSession(request, "CITIZEN"); } catch (error) { return authErrorResponse(error); }
   const contentType = request.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
-    let body: { fixture?: boolean };
-    try { body = await request.json() as { fixture?: boolean }; } catch {
+    let body: { fixture?: boolean; synthetic?: boolean };
+    try { body = await request.json() as { fixture?: boolean; synthetic?: boolean }; } catch {
       return Response.json({ error: "Request body must be valid JSON." }, { status: 400 });
     }
-    if (body.fixture !== true) return Response.json({ error: "Choose the working voice example." }, { status: 422 });
+    if (body.fixture !== true || body.synthetic !== true) return Response.json({ error: "Choose the working synthetic voice example." }, { status: 422 });
     return Response.json({
       ...FIXTURE,
       languageCode: "en-IN",
@@ -147,8 +147,8 @@ export async function POST(request: Request) {
   }
   try {
     const form = await request.formData();
-    if (form.get("processingNoticeAccepted") !== "true") {
-      return Response.json({ error: "Start the microphone again to confirm voice processing." }, { status: 422 });
+    if (form.get("synthetic") !== "true" || form.get("processingNoticeAccepted") !== "true") {
+      return Response.json({ error: "Confirm that the recording is synthetic and consent to voice processing." }, { status: 422 });
     }
     const file = form.get("audio");
     if (!(file instanceof File) || file.size === 0 || file.size > 8_000_000) {

@@ -437,19 +437,17 @@ without Workers, but the D1 binding is the supported production path.
 
 ## Demo accounts
 
-The deployed demo ships with two accounts so evaluators can see both sides of the
-review desk. **These are demo credentials and they are intentionally public.**
+Fixed accounts and one-click judge access are disabled in production by default.
+For a synthetic demonstration deployment only, set `DEMO_ACCESS_ENABLED=true`.
+Set it to `false` before enabling any managed identity flow or handling any real
+personal information. These credentials can access synthetic demo records only.
 
 | Role | Email | Password |
 |---|---|---|
 | Citizen | `citizen@test.com` | `test2026` |
 | Evaluator | `evaluator@cybersaarthi.demo` | `JudgeDemo2026!` |
 
-If you deploy this for anything other than a demonstration, replace both accounts,
-change `AUTH_SESSION_SECRET`, and set `SEED_DEMO_USERS=false`-equivalent
-behaviour by removing the fixture seeding from your deployment. The accounts grant
-access to synthetic records only; there is no production data path in this
-repository.
+The toggle does not turn fixed demo credentials into production authentication.
 
 ---
 
@@ -462,9 +460,28 @@ repository.
   numbers) are invented and do not correspond to real accounts or real people.
 - No real citizen data, no real Aadhaar number, and no real bank account number is
   present in this repository or in its history.
-- If you fork this for a real deployment: you are handling sensitive personal data
-  under India's DPDP Act 2023. Encrypt at rest, restrict access to the review desk,
-  define a retention period, and log every access to a case record.
+- The prototype accepts synthetic information only. Recorded audio and screenshot
+  bytes are processed in the request and are not persisted; evidence metadata,
+  checksums, narratives, support messages, and case traces are persisted.
+- User-created synthetic cases and related rows are removed after 30 days. The
+  bundled seed cases remain until reset or deployment removal. Users can delete a
+  closed case sooner. Configure `CRON_SECRET` for the daily Vercel cleanup job.
+- OpenAI and Sarvam requests are only made after the corresponding action consent
+  is explicitly checked. Provider processing and retention follow those providers'
+  terms and are outside this application's storage controls.
+- **Do not submit real personal information.** Before any real-data pilot, replace
+  demo auth with managed identity, obtain privacy/security approval, define data
+  residency and retention controls, and approve a documented incident process.
+
+### Incident response for the synthetic prototype
+
+If real personal information is reported or suspected: disable `DEMO_ACCESS_ENABLED`
+and provider keys, pause the deployment if exposure is ongoing, rotate affected
+credentials, identify the affected deployment and stored case IDs, delete affected
+records, and notify the project owner promptly. Preserve incident timestamps and
+technical logs without copying raw narratives or uploads into tickets. The project
+owner must determine any further notifications with qualified privacy/security
+advisers; this prototype does not claim to meet legal incident-reporting duties.
 
 ---
 

@@ -2,5 +2,11 @@
   "framework": null,
   "buildCommand": "npm run build:vercel",
   "outputDirectory": ".output",
-  "installCommand": "npm install --ignore-scripts"
+  "installCommand": "npm install --ignore-scripts",
+  "crons": [
+    {
+      "path": "/api/maintenance/retention",
+      "schedule": "0 0 * * *"
+    }
+  ]
 }

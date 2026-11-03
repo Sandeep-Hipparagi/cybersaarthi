@@ -68,10 +68,11 @@ function instantFallback(message: string): string {
 
 export async function generateSupportAssistantReply(
   context: SupportAssistantContext,
+  allowProvider = false,
 ): Promise<SupportAssistantReply> {
   const apiKey = process.env.OPENAI_API_KEY;
   const fallback = concise(instantFallback(context.latestCitizenMessage));
-  if (!apiKey) return { body: fallback, provider: "INSTANT_FALLBACK", model: null };
+  if (!apiKey || !allowProvider) return { body: fallback, provider: "INSTANT_FALLBACK", model: null };
 
   const model = process.env.OPENAI_SUPPORT_MODEL ?? "gpt-5.6-terra";
   try {
