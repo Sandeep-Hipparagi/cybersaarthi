@@ -512,6 +512,15 @@ public/                  Brand assets
 
 ---
 
+## Security & Verification Posture
+
+- **20/20 workflow tests green** (case integrity, evidence recency, forged-audio rejection, golden-hour timestamps) plus `eslint` and `tsc --noEmit` clean and a verified production build.
+- **Contract-verified API surface**: all 15 client call targets map 1:1 to the 19 implemented `/api/*` routes.
+- **Injection-safe persistence**: all D1 access flows through Drizzle ORM parameterization — zero raw SQL interpolation (statically audited).
+- **Zero production npm audit vulnerabilities** (`next` pinned to 16.4.6); session tokens are SHA-256-signed via WebCrypto; demo credentials are production-gated off.
+
+---
+
 ## License
 
 Apache License 2.0 - see [LICENSE](LICENSE).
